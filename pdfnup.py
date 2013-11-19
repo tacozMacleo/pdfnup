@@ -3,12 +3,12 @@
 
 """Layout multiple pages per sheet of a PDF document.
 
-Pdfnup is a Python module and command-line tool for layouting multiple 
-pages per sheet of a PDF document. Using it you can take a PDF document 
+Pdfnup is a Python module and command-line tool for layouting multiple
+pages per sheet of a PDF document. Using it you can take a PDF document
 and create a new PDF document from it where each page contains a number
-of minimized pages from the original PDF file. 
+of minimized pages from the original PDF file.
 
-This can be considered a sample tool for the excellent package pyPdf by 
+This can be considered a sample tool for the excellent package pyPdf by
 Mathieu Fenniak, see http://pybrary.net/pyPdf.
 
 For further information please look into the file README.txt!
@@ -67,22 +67,22 @@ _mtA4Pdf = zlib.decompress(base64.decodestring(_mtA4PdfZip64))
 
 def isSquare(n):
     "Is this a square number?"
-    
+
     s = math.sqrt(n)
     lower, upper = math.floor(s), math.ceil(s)
-    
+
     return lower == upper
 
 
 def isHalfSquare(n):
     "Is this a square number, divided by 2?"
-    
+
     return isSquare(n * 2)
 
 
 def calcScalingFactors(w, h, wp, hp):
     wp, hp = map(float, (wp, hp))
-    
+
     if w == None:
         xscale = h/hp
         yscale = h/hp
@@ -92,13 +92,13 @@ def calcScalingFactors(w, h, wp, hp):
     else:
         xscale = w/wp
         yscale = h/hp
-        
+
     return xscale, yscale
 
-    
+
 def calcRects(pageSize, numTiles, dirs="RD"):
     "Return list of sub rects for some rect."
-    
+
     allowdDirs = [x+y for x in "RL" for y in "UD"]
     allowdDirs += [y+x for x in "RL" for y in "UD"]
     assert dirs in allowdDirs
@@ -121,7 +121,7 @@ def calcRects(pageSize, numTiles, dirs="RD"):
         xs = [i*w for i in xr]
         ys = [j*h for j in yr]
     elif isHalfSquare(n):
-        # should issue a warning for page ratios different from 1:sqr(2) 
+        # should issue a warning for page ratios different from 1:sqr(2)
         s = math.sqrt(2*n)
         if width > height:
             w, h = float(width)/float(s), float(height)/float(s)*2
@@ -159,7 +159,7 @@ def calcRects(pageSize, numTiles, dirs="RD"):
 
 def exP1multiN(pdf, newPageSize, n):
     "Extract page 1 of a PDF file, copy it n times resized."
-    
+
     # create a file-like buffer object containing PDF code
     buf = StringIO()
     buf.write(pdf)
@@ -173,33 +173,33 @@ def exP1multiN(pdf, newPageSize, n):
     output = PdfFileWriter()
     for i in range(n):
         output.addPage(page1)
-    
+
     # create a file-like buffer object to hold the new PDF code
     buf2 = StringIO()
     output.write(buf2)
     buf2.seek(0)
-    
+
     return buf2
 
 
 def isFileLike(obj):
     "Is this a file-like object?"
-    
+
     if type(obj) == types.FileType:
         return True
     if set("read seek close".split()).issubset(set(dir(obj))):
         return True
 
     return False
-    
-    
-def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD", 
+
+
+def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
         verbose=False):
     """Generate a N-up document version.
-    
-    If outPathPatternOrFile is None, the output will be written 
+
+    If outPathPatternOrFile is None, the output will be written
     in a file named after the input file.
-    """    
+    """
 
     assert isSquare(n) or isHalfSquare(n)
 
@@ -223,16 +223,16 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
             if oppof is None:
                 oppof = "%(dirname)s/%(base)s-%(n)dup%(ext)s"
             aDict = {
-                "dirname": os.path.dirname(inPathOrFile) or ".", 
-                "basename": os.path.basename(inPathOrFile), 
-                "base": os.path.basename(os.path.splitext(inPathOrFile)[0]), 
+                "dirname": os.path.dirname(inPathOrFile) or ".",
+                "basename": os.path.basename(inPathOrFile),
+                "base": os.path.basename(os.path.splitext(inPathOrFile)[0]),
                 "ext": os.path.splitext(inPathOrFile)[1],
-                "n":n, 
+                "n":n,
             }
             outPath = oppof % aDict
             outPath = os.path.normpath(outPath)
             outFile = open(outPath, "wb")
-        
+
     # get info about source document
     docReader = PdfFileReader(inFile)
     numPages = docReader.getNumPages()
@@ -245,10 +245,10 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
         newPageSize = oldPageSize[1], oldPageSize[0]
     np = numPages / n + numPages % n
     buf = exP1multiN(_mtA4Pdf, newPageSize, np)
- 
+
     # calculate mini page areas
     rects = calcRects(newPageSize, n, dirs)
-        
+
     # combine
     ops = []
     newPageNum = -1
@@ -272,8 +272,8 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
         dummy, dummy, dummy, destPageNum, dummy = op
         if destPageNum not in mapping:
             mapping[destPageNum] = []
-        mapping[destPageNum].append(op) 
-        
+        mapping[destPageNum].append(op)
+
     IS = ImmutableSet
     PO, AO, DO, NO = PageObject, ArrayObject, DictionaryObject, NameObject
 
@@ -286,36 +286,36 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
             destX, destY, destWidth, destHeight = destRect
             xScale, yScale = calcScalingFactors(
                 destWidth, destHeight, pageWidth, pageHeight)
-            
+
             newResources = DO()
             rename = {}
             orgResources = page1["/Resources"].getObject()
             page2Resources = page2["/Resources"].getObject()
-        
+
             names = "ExtGState Font XObject ColorSpace Pattern Shading"
             for res in names.split():
                 res = "/" + res
-                new, newrename = PO._mergeResources(orgResources, 
+                new, newrename = PO._mergeResources(orgResources,
                     page2Resources, res)
                 if new:
                     newResources[NO(res)] = new
                     rename.update(newrename)
-        
+
             newResources[NO("/ProcSet")] = AO(
                 IS(orgResources.get("/ProcSet", AO()).getObject()).union(
                     IS(page2Resources.get("/ProcSet", AO()).getObject())
                 )
             )
-        
+
             newContentArray = AO()
             orgContent = page1["/Contents"].getObject()
             newContentArray.append(PO._pushPopGS(orgContent, page1.pdf))
             page2Content = page2['/Contents'].getObject()
-            page2Content = PO._contentStreamRename(page2Content, rename, 
+            page2Content = PO._contentStreamRename(page2Content, rename,
                 page1.pdf)
             page2Content = ContentStream(page2Content, page1.pdf)
             page2Content.operations.insert(0, [[], "q"])
-            
+
             # handle rotation
             try:
                 rotation = page2["/Rotate"].getObject()
@@ -335,14 +335,14 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
             page2Content.operations.append([[], "Q"])
             newContentArray.append(page2Content)
             page1[NO('/Contents')] = ContentStream(newContentArray, page1.pdf)
-            page1[NO('/Resources')] = newResources            
+            page1[NO('/Resources')] = newResources
 
         output.addPage(page1)
 
     if type(oppof) in types.StringTypes:
         outFile = open(outPath, "wb")
     output.write(outFile)
-    
+
     if verbose:
         if type(oppof) in types.StringTypes:
             print "written: %s" % outPath
