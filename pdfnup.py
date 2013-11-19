@@ -29,7 +29,7 @@ except ImportError:
 
 try:
     from pyPdf import PdfFileWriter, PdfFileReader
-    from pyPdf.pdf import PageObject, ImmutableSet, ContentStream
+    from pyPdf.pdf import PageObject, ContentStream
     from pyPdf.generic import \
         NameObject, DictionaryObject, ArrayObject, FloatObject
 except ImportError:
@@ -274,7 +274,6 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
             mapping[destPageNum] = []
         mapping[destPageNum].append(op)
 
-    IS = ImmutableSet
     PO, AO, DO, NO = PageObject, ArrayObject, DictionaryObject, NameObject
 
     for destPageNum, ops in mapping.items():
@@ -302,8 +301,8 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
                     rename.update(newrename)
 
             newResources[NO("/ProcSet")] = AO(
-                IS(orgResources.get("/ProcSet", AO()).getObject()).union(
-                    IS(page2Resources.get("/ProcSet", AO()).getObject())
+                frozenset(orgResources.get("/ProcSet", AO()).getObject()).union(
+                    frozenset(page2Resources.get("/ProcSet", AO()).getObject())
                 )
             )
 
