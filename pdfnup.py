@@ -21,20 +21,20 @@ import math
 import zlib
 import base64
 import types
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-
+import io
 
 try:
-    from pyPdf import PdfFileWriter, PdfFileReader
-    from pyPdf.pdf import PageObject, ContentStream
-    from pyPdf.generic import \
-        NameObject, DictionaryObject, ArrayObject, FloatObject
+    from pypdf import PdfWriter
+    from pypdf import PdfReader
+    from pypdf import PageObject
+    from pypdf.generic import NameObject
+    from pypdf.generic import ictionaryObject
+    from pypdf.generic import rrayObject
+    from pypdf.generic import loatObject
+    from pypdf.generic import ontentStream
 except ImportError:
     _MSG = "Please install pyPdf first, see http://pybrary.net/pyPdf"
-    raise RuntimeError(_MSG)
+    raise #RuntimeError(_MSG)
 
 
 __version__ = "0.4.1"
@@ -62,8 +62,7 @@ ZmFwL+aYJQ6ZkCimSVbxsI8eQK30MVj8+WNwdISXF3YINutfW1pBXdfZ1DHNqe26/eOpbTvx1Pba
 U7ttv8WBNTUtGx8HH6v2XwP+V/YNqF1F0eoEe8Wth1cHuPnbOPpKobPpJ5LIbLMsx1PfvdrpG7z6
 fgMis+cW
 """
-_mtA4Pdf = zlib.decompress(base64.decodestring(_mtA4PdfZip64))
-
+_mtA4Pdf = zlib.decompress(base64.standard_b64decode(_mtA4PdfZip64))
 
 def isSquare(n):
     "Is this a square number?"
@@ -161,21 +160,21 @@ def exP1multiN(pdf, newPageSize, n):
     "Extract page 1 of a PDF file, copy it n times resized."
 
     # create a file-like buffer object containing PDF code
-    buf = StringIO()
+    buf = io.BytesIO()
     buf.write(pdf)
 
     # extract first page and resize it as desired
-    srcReader = PdfFileReader(buf)
-    page1 = srcReader.getPage(0)
-    page1.mediaBox.upperRight = newPageSize
+    srcReader = PdfReader(buf)
+    page1 = srcReader.pages[0]
+    page1.mediabox.upper_right = newPageSize
 
     # create output and copy the first page n times
-    output = PdfFileWriter()
+    output = PdfWriter()
     for i in range(n):
-        output.addPage(page1)
+        output.add_page(page1)
 
     # create a file-like buffer object to hold the new PDF code
-    buf2 = StringIO()
+    buf2 = io.BytesIO()
     output.write(buf2)
     buf2.seek(0)
 
@@ -185,7 +184,7 @@ def exP1multiN(pdf, newPageSize, n):
 def isFileLike(obj):
     "Is this a file-like object?"
 
-    if type(obj) == types.FileType:
+    if isinstance(obj, io.IOBase):
         return True
     if set("read seek close".split()).issubset(set(dir(obj))):
         return True
@@ -209,13 +208,13 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
     if isFileLike(ipof):
         inFile = ipof
         if oppof is None:
-            raise AssertionError, "Must specify output for file input!"
+            raise AssertionError("Must specify output for file input!")
         elif isFileLike(oppof):
             outFile = oppof
-        elif type(oppof) in types.StringTypes:
+        elif isinstance(oppof, str):
             outPath = oppof
             outFile = open(outPath, "wb")
-    elif type(ipof) in types.StringTypes:
+    elif isinstance(ipof, str):
         inFile = open(ipof, "rb")
         if isFileLike(oppof):
             outFile = oppof
@@ -234,16 +233,16 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
             outFile = open(outPath, "wb")
 
     # get info about source document
-    docReader = PdfFileReader(inFile)
-    numPages = docReader.getNumPages()
-    oldPageSize = docReader.getPage(0).mediaBox.upperRight
+    docReader = PdfReader(inFile)
+    numPages = len(docReader.pages)
+    oldPageSize = docReader.pages[0].mediabox.upper_right
 
     # create empty output document buffer
     if isSquare(n):
         newPageSize = oldPageSize
     elif isHalfSquare(n):
         newPageSize = oldPageSize[1], oldPageSize[0]
-    np = numPages / n + numPages % n
+    np = numPages // n + numPages % n
     buf = exP1multiN(_mtA4Pdf, newPageSize, np)
 
     # calculate mini page areas
@@ -255,17 +254,17 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
     for i in range(numPages):
         if i % n == 0:
             newPageNum += 1
-        op = (inPathOrFile, i, (0, 0, None, None), i/n, rects[i % n])
+        op = (inPathOrFile, i, (0, 0, None, None), i//n, rects[i % n])
         ops.append(op)
 
-    srcr = srcReader = PdfFileReader(inFile)
-    srcPages = [srcr.getPage(i) for i in range(srcr.getNumPages())]
+    srcr = srcReader = PdfReader(inFile)
+    srcPages = [srcr.pages[i] for i in range(len(srcr.pages))]
 
-    if type(oppof) in types.StringTypes:
+    if isinstance(oppof, str):
         outFile = open(outPath, "rb")
-    outr = outReader = PdfFileReader(buf)
-    outPages = [outr.getPage(i) for i in range(outr.getNumPages())]
-    output = PdfFileWriter()
+    outr = outReader = PdfReader(buf)
+    outPages = [outr.pages[i] for i in range(len(outr.pages))]
+    output = PdfWriter()
 
     mapping = {}
     for op in ops:
@@ -281,43 +280,43 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
             inPathOrFile, srcPageNum, srcRect, destPageNum, destRect = op
             page2 = srcPages[srcPageNum]
             page1 = outPages[destPageNum]
-            pageWidth, pageHeight = page2.mediaBox.upperRight
+            pageWidth, pageHeight = page2.mediabox.upper_right
             destX, destY, destWidth, destHeight = destRect
             xScale, yScale = calcScalingFactors(
                 destWidth, destHeight, pageWidth, pageHeight)
 
             newResources = DO()
             rename = {}
-            orgResources = page1["/Resources"].getObject()
-            page2Resources = page2["/Resources"].getObject()
+            orgResources = page1["/Resources"].get_object()
+            page2Resources = page2["/Resources"].get_object()
 
             names = "ExtGState Font XObject ColorSpace Pattern Shading"
             for res in names.split():
                 res = "/" + res
-                new, newrename = PO._mergeResources(orgResources,
+                new, newrename = PO._merge_resources(orgResources,
                     page2Resources, res)
                 if new:
                     newResources[NO(res)] = new
                     rename.update(newrename)
 
             newResources[NO("/ProcSet")] = AO(
-                frozenset(orgResources.get("/ProcSet", AO()).getObject()).union(
-                    frozenset(page2Resources.get("/ProcSet", AO()).getObject())
+                frozenset(orgResources.get("/ProcSet", AO()).get_object()).union(
+                    frozenset(page2Resources.get("/ProcSet", AO()).get_object())
                 )
             )
 
             newContentArray = AO()
-            orgContent = page1["/Contents"].getObject()
-            newContentArray.append(PO._pushPopGS(orgContent, page1.pdf))
-            page2Content = page2['/Contents'].getObject()
-            page2Content = PO._contentStreamRename(page2Content, rename,
+            orgContent = page1["/Contents"].get_object()
+            newContentArray.append(PO._push_pop_gs(orgContent, page1.pdf))
+            page2Content = page2['/Contents'].get_object()
+            page2Content = PO._content_stream_rename(page2Content, rename,
                 page1.pdf)
             page2Content = ContentStream(page2Content, page1.pdf)
             page2Content.operations.insert(0, [[], "q"])
 
             # handle rotation
             try:
-                rotation = page2["/Rotate"].getObject()
+                rotation = page2["/Rotate"].get_object()
             except KeyError:
                 rotation = 0
             if rotation in (180, 270):
@@ -336,14 +335,15 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
             page1[NO('/Contents')] = ContentStream(newContentArray, page1.pdf)
             page1[NO('/Resources')] = newResources
 
-        output.addPage(page1)
+        output.add_page(page1)
 
-    if type(oppof) in types.StringTypes:
+    if isinstance(oppof,str):
         outFile = open(outPath, "wb")
     output.write(outFile)
 
     if verbose:
-        if type(oppof) in types.StringTypes:
-            print "written: %s" % outPath
+        if isinstance(oppof, str):
+            print(f"written: {outPath}")
         elif isFileLike:
-            print "written to file-like input parameter"
+            print("written to file-like input parameter")
+

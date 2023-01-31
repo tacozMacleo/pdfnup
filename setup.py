@@ -122,5 +122,5 @@ setup(
 
     # for setuptools, only
     zip_safe = False,
-    install_requires = ["pyPdf>1.10"],
+    install_requires = ["pypdf>=3.3.0"],
 )
