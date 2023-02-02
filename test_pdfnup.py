@@ -5,17 +5,13 @@
 
 
 import os
-import sys
 import math
 import unittest
+import io
 
 try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-
-try:
-    from pyPdf import PdfFileReader, PdfFileWriter
+    from pypdf import PdfReader as PdfFileReader
+    from pypdf import PdfWriter as PdfFileWriter
 except ImportError:
     _MSG = "Please install pyPdf first, see http://pybrary.net/pyPdf"
     raise RuntimeError(_MSG)
@@ -49,22 +45,23 @@ class LayoutingTests(unittest.TestCase):
             for n in (4, 9, 16):
                 outName = os.path.splitext(path0)[0] + "-%dup.pdf" % n
                 path1 = os.path.join(".", outName)
-                generateNup(path0, n, path1, verbose=False) # , dirs="UL")
+                generateNup(path0, n, path1, verbose=False)  # , dirs="UL")
     
                 # assert output has correct number of pages
-                input = PdfFileReader(file(path0, "rb"))
-                np0 = input.getNumPages()
-                input = PdfFileReader(file(path1, "rb"))
-                np1 = input.getNumPages()
-                self.assertEqual(np1, math.ceil(np0 / float(n)))
-    
-                # assert output page(s) has/have correct text content
-                for pn in range(np1):
-                    page = input.getPage(pn)
-                    text = page.extractText().split()
-                    exp = group([str(num) for num in range(np0)], n)[pn]
-                    self.assertEqual(text, exp)
-
+                with open(path0, "rb") as file:
+                    input = PdfFileReader(file)
+                    np0 = len(input.pages)
+                with open(path1, "rb") as file:
+                    input = PdfFileReader(file)
+                    np1 = len(input.pages)
+                    self.assertEqual(np1, math.ceil(np0 / float(n)))
+        
+                    # assert output page(s) has/have correct text content
+                    for pn in range(np1):
+                        page = input.pages[pn]
+                        text = page.extract_text().split()
+                        exp = group([str(num) for num in range(np0)], n)[pn]
+                        self.assertEqual(text, exp)
 
     def test1(self):
         "Test generating several 'n-up' docs, n = (m**2) / 2..."
@@ -73,22 +70,23 @@ class LayoutingTests(unittest.TestCase):
             for n in (2, 8, 18):
                 outName = os.path.splitext(path0)[0] + "-%dup.pdf" % n
                 path1 = os.path.join(".", outName)
-                generateNup(path0, n, path1, verbose=False) # , dirs="UL")
+                generateNup(path0, n, path1, verbose=False)  # , dirs="UL")
     
                 # assert output has correct number of pages
-                input = PdfFileReader(file(path0, "rb"))
-                np0 = input.getNumPages()
-                input = PdfFileReader(file(path1, "rb"))
-                np1 = input.getNumPages()
-                self.assertEqual(np1, math.ceil(np0 / float(n)))
-    
-                # assert output page(s) has/have correct text content
-                for pn in range(np1):
-                    page = input.getPage(pn)
-                    text = page.extractText().split()
-                    exp = group([str(num) for num in range(np0)], n)[pn]
-                    self.assertEqual(text, exp)
-
+                with open(path0, "rb") as file:
+                    input = PdfFileReader(file)
+                    np0 = len(input.pages)
+                with open(path1, "rb") as file:
+                    input = PdfFileReader(file)
+                    np1 = len(input.pages)
+                    self.assertEqual(np1, math.ceil(np0 / float(n)))
+        
+                    # assert output page(s) has/have correct text content
+                    for pn in range(np1):
+                        page = input.pages[pn]
+                        text = page.extract_text().split()
+                        exp = group([str(num) for num in range(np0)], n)[pn]
+                        self.assertEqual(text, exp)
 
     def test2(self):
         "Test generating several 'n-up' docs in 'legal' format."
@@ -100,21 +98,23 @@ class LayoutingTests(unittest.TestCase):
             for n in (2, 4, 8, 9):
                 outName = os.path.splitext(path0)[0] + "-%dup.pdf" % n
                 path1 = os.path.join(".", outName)
-                generateNup(path0, n, path1, verbose=False) # , dirs="UL")
+                generateNup(path0, n, path1, verbose=False)  # , dirs="UL")
     
                 # assert output has correct number of pages
-                input = PdfFileReader(file(path0, "rb"))
-                np0 = input.getNumPages()
-                input = PdfFileReader(file(path1, "rb"))
-                np1 = input.getNumPages()
-                self.assertEqual(np1, math.ceil(np0 / float(n)))
-    
-                # assert output page(s) has/have correct text content
-                for pn in range(np1):
-                    page = input.getPage(pn)
-                    text = page.extractText().split()
-                    exp = group([str(num) for num in range(np0)], n)[pn]
-                    self.assertEqual(text, exp)
+                with open(path0, "rb") as file:
+                    input = PdfFileReader(file)
+                    np0 = len(input.pages)
+                with open(path1, "rb") as file:
+                    input = PdfFileReader(file)
+                    np1 = len(input.pages)
+                    self.assertEqual(np1, math.ceil(np0 / float(n)))
+        
+                    # assert output page(s) has/have correct text content
+                    for pn in range(np1):
+                        page = input.pages[pn]
+                        text = page.extract_text().split()
+                        exp = group([str(num) for num in range(np0)], n)[pn]
+                        self.assertEqual(text, exp)
 
 
 class RotationTests(unittest.TestCase):
@@ -124,36 +124,35 @@ class RotationTests(unittest.TestCase):
         "Test on rotated pages in portrait format."
 
         output = PdfFileWriter()
-        input1 = PdfFileReader(file("samples/test-a4-p.pdf", "rb"))
-        numPages = input1.getNumPages()
-        for i in range(numPages):
-            p = input1.getPage(i)
-            p.rotateClockwise((i % 4) * 90)
-            output.addPage(p)
-        outPath = "samples/test-a4-pr.pdf"
-        outputStream = file(outPath, "wb")
-        output.write(outputStream)
-        outputStream.close()
-        for j in (2, 4, 8, 9): 
-            generateNup(outPath, j, verbose=False)
-
+        with open("samples/test-a4-p.pdf", "rb") as file:
+            input1 = PdfFileReader(file)
+            numPages = len(input1.pages)
+            for i in range(numPages):
+                p = input1.pages[i]
+                p.rotate((i % 4) * 90)
+                output.add_page(p)
+            outPath = "samples/test-a4-pr.pdf"
+            with open(outPath, "wb") as outputStream: 
+                output.write(outputStream)
+            for j in (2, 4, 8, 9): 
+                generateNup(outPath, j, verbose=False)
 
     def test1(self):
         "Test on rotated pages in landscape format."
 
         output = PdfFileWriter()
-        input1 = PdfFileReader(file("samples/test-a4-l.pdf", "rb"))
-        numPages = input1.getNumPages()
-        for i in range(numPages):
-            p = input1.getPage(i)
-            p.rotateClockwise((i % 4) * 90)
-            output.addPage(p)
-        outPath = "samples/test-a4-lr.pdf"
-        outputStream = file(outPath, "wb")
-        output.write(outputStream)
-        outputStream.close()
-        for j in (2, 4, 8, 9): 
-            generateNup(outPath, j, verbose=False)
+        with open("samples/test-a4-l.pdf", "rb") as file:
+            input1 = PdfFileReader(file)
+            numPages = len(input1.pages)
+            for i in range(numPages):
+                p = input1.pages[i]
+                p.rotate((i % 4) * 90)
+                output.add_page(p)
+            outPath = "samples/test-a4-lr.pdf"
+            with open(outPath, "wb") as outputStream:
+                output.write(outputStream)
+            for j in (2, 4, 8, 9): 
+                generateNup(outPath, j, verbose=False)
 
 
 class FileLikeInputTests(unittest.TestCase):
@@ -163,44 +162,47 @@ class FileLikeInputTests(unittest.TestCase):
         "Test using file input and filename output document."
 
         n = 4
-        path0  = "samples/test-a4-l.pdf"
-        f = open(path0, "rb")
-        outName = os.path.splitext(path0)[0] + "-%dup-fromFileObj.pdf" % n
-        path1 = os.path.join(".", outName)
-        generateNup(f, n, path1, verbose=False)
-
+        path0 = "samples/test-a4-l.pdf"
+        with open(path0, "rb") as f:
+            outName = os.path.splitext(path0)[0] + "-%dup-fromFileObj.pdf" % n
+            path1 = os.path.join(".", outName)
+            generateNup(f, n, path1, verbose=False)
 
     def test1(self):
         "Test using StringIO input and filename output document."
 
         n = 4
-        path0  = "samples/test-a4-l.pdf"
-        pdfCode = open(path0, "rb").read()
-        f = StringIO(pdfCode)
+        path0 = "samples/test-a4-l.pdf"
+        with open(path0, "rb") as file:
+            pdfCode = file.read()
+        f = io.BytesIO(pdfCode)
         outName = os.path.splitext(path0)[0] + "-%dup-fromStringIO.pdf" % n
         path1 = os.path.join(".", outName)
         generateNup(f, n, path1, verbose=False)
-
 
     def test2(self):
         "Test using StringIO input without defining an output document."
 
         n = 4
-        path0  = "samples/test-a4-l.pdf"
-        pdfCode = open(path0, "rb").read()
-        f = StringIO(pdfCode)
-        self.assertRaises(AssertionError, 
-            generateNup, f, n, None, verbose=False)
-
+        path0 = "samples/test-a4-l.pdf"
+        with open(path0, "rb") as file:
+            pdfCode = file.read()
+        f = io.BytesIO(pdfCode)
+        self.assertRaises(
+            AssertionError, 
+            generateNup, f, n, None, verbose=False
+        )
 
     def test3(self):
         "Test using file input without defining an output document."
 
         n = 4
-        path0  = "samples/test-a4-l.pdf"
-        f = open(path0, "rb")
-        self.assertRaises(AssertionError, 
-            generateNup, f, n, None, verbose=False)
+        path0 = "samples/test-a4-l.pdf"
+        with open(path0, "rb") as f:
+            self.assertRaises(
+                AssertionError, 
+                generateNup, f, n, None, verbose=False
+            )
 
 
 class FileLikeOutputTests(unittest.TestCase):
@@ -210,29 +212,29 @@ class FileLikeOutputTests(unittest.TestCase):
         "Test using filename input and StringIO output document."
 
         n = 4
-        path0  = "samples/test-a4-l.pdf"
-        path1  = "samples/test-a4-l-toStringIO.pdf"
-        output = StringIO()
+        path0 = "samples/test-a4-l.pdf"
+        path1 = "samples/test-a4-l-toStringIO.pdf"
+        output = io.BytesIO()
         generateNup(path0, n, output, verbose=False)
         output.seek(0)
         data = output.read()
-        self.assert_(data.startswith("%PDF"))
-        self.assert_(data.rstrip().endswith("%%EOF"))
-        open (path1, "wb").write(data)
-
+        self.assert_(data.startswith(b"%PDF"))
+        self.assert_(data.rstrip().endswith(b"%%EOF"))
+        with open(path1, "wb") as file:
+            file.write(data)
 
     def test1(self):
         "Test using filename input and file output document."
 
         n = 4
-        path0  = "samples/test-a4-l.pdf"
-        path1  = "samples/test-a4-l-toFileObj.pdf"
-        output = open(path1, "wb")
-        generateNup(path0, n, output, verbose=False)
-        output.close()
-        data = open(path1).read()
-        self.assert_(data.startswith("%PDF"))
-        self.assert_(data.rstrip().endswith("%%EOF"))
+        path0 = "samples/test-a4-l.pdf"
+        path1 = "samples/test-a4-l-toFileObj.pdf"
+        with open(path1, "wb") as output: 
+            generateNup(path0, n, output, verbose=False)
+        with open(path1, 'rb') as file:
+            data = file.read()
+        self.assert_(data.startswith(b"%PDF"))
+        self.assert_(data.rstrip().endswith(b"%%EOF"))
 
 
 if __name__ == "__main__":
