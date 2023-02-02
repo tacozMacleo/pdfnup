@@ -218,8 +218,8 @@ class FileLikeOutputTests(unittest.TestCase):
         generateNup(path0, n, output, verbose=False)
         output.seek(0)
         data = output.read()
-        self.assert_(data.startswith(b"%PDF"))
-        self.assert_(data.rstrip().endswith(b"%%EOF"))
+        self.assertTrue(data.startswith(b"%PDF"))
+        self.assertTrue(data.rstrip().endswith(b"%%EOF"))
         with open(path1, "wb") as file:
             file.write(data)
 
@@ -233,8 +233,8 @@ class FileLikeOutputTests(unittest.TestCase):
             generateNup(path0, n, output, verbose=False)
         with open(path1, 'rb') as file:
             data = file.read()
-        self.assert_(data.startswith(b"%PDF"))
-        self.assert_(data.rstrip().endswith(b"%%EOF"))
+        self.assertTrue(data.startswith(b"%PDF"))
+        self.assertTrue(data.rstrip().endswith(b"%%EOF"))
 
 
 if __name__ == "__main__":

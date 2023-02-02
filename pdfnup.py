@@ -18,7 +18,6 @@ For further information please look into the file README.txt!
 import base64
 import io
 import math
-import os
 import pathlib
 import zlib
 
@@ -200,6 +199,7 @@ def generateNup(
         inPathOrFile = pathlib.Path(inPathOrFile)
 
     inFile = inPathOrFile
+    outFile = outPathPatternOrFile
 
     if outPathPatternOrFile is None:
         if isinstance(inPathOrFile, str):
@@ -212,9 +212,6 @@ def generateNup(
         outFile = ipof
     elif isinstance(outPathPatternOrFile, str):
         outFile = pathlib.Path(outPathPatternOrFile)
-
-    if isinstance(outPathPatternOrFile, io.IOBase):
-        outFile = outPathPatternOrFile
 
     # get info about source document
     if isinstance(inFile, io.IOBase):
