@@ -15,12 +15,12 @@ For further information please look into the file README.txt!
 """
 
 
-import os
-import math
-import zlib
 import base64
-import types
 import io
+import math
+import os
+import pathlib
+import zlib
 
 try:
     from pypdf import PdfWriter
@@ -32,7 +32,7 @@ try:
     from pypdf.generic import FloatObject
     from pypdf.generic import ContentStream
 except ImportError:
-    _MSG = "Please install pyPdf first, see http://pybrary.net/pyPdf"
+    print("Please install pyPdf first, see http://pybrary.net/pyPdf")
     raise  # RuntimeError(_MSG)
 
 
@@ -181,23 +181,12 @@ def exP1multiN(pdf, newPageSize, n):
     return buf2
 
 
-def isFileLike(obj):
-    "Is this a file-like object?"
-
-    if isinstance(obj, io.IOBase):
-        return True
-    if set("read seek close".split()).issubset(set(dir(obj))):
-        return True
-
-    return False
-
-
 def generateNup(
-    inPathOrFile,
-    n,
-    outPathPatternOrFile=None,
+    inPathOrFile: io.IOBase | pathlib.Path | str,
+    n: int,
+    outPathPatternOrFile: io.IOBase | pathlib.Path | str | None = None,
     dirs="RD",
-    verbose=False
+    verbose: bool = False,
 ):
     """Generate a N-up document version.
 
@@ -207,35 +196,27 @@ def generateNup(
 
     assert isSquare(n) or isHalfSquare(n)
 
-    ipof = inPathOrFile
-    oppof = outPathPatternOrFile
+    if isinstance(inPathOrFile, str):
+        inPathOrFile = pathlib.Path(inPathOrFile)
 
-    if isFileLike(ipof):
-        inFile = ipof
-        if oppof is None:
+    if not isinstance(inPathOrFile, io.IOBase):
+        inFile = inPathOrFile.open('rb')
+    else:
+        inFile = inPathOrFile
+
+    if outPathPatternOrFile is None:
+        if isinstance(inPathOrFile, str):
+            ipof_copy = pathlib.Path(inPathOrFile)
+            ipof = ipof_copy.parent / f"{ipof_copy.stem}-{n}up{ipof_copy.suffix}"
+        elif isinstance(inPathOrFile, pathlib.Path):
+            ipof = inPathOrFile.parent / f"{inPathOrFile.stem}-{n}up{inPathOrFile.suffix}"
+        else:
             raise AssertionError("Must specify output for file input!")
-        elif isFileLike(oppof):
-            outFile = oppof
-        elif isinstance(oppof, str):
-            outPath = oppof
-            outFile = open(outPath, "wb")
-    elif isinstance(ipof, str):
-        inFile = open(ipof, "rb")
-        if isFileLike(oppof):
-            outFile = oppof
-        elif oppof is None or isinstance(oppof, str):
-            if oppof is None:
-                oppof = "%(dirname)s/%(base)s-%(n)dup%(ext)s"
-            aDict = {
-                "dirname": os.path.dirname(inPathOrFile) or ".",
-                "basename": os.path.basename(inPathOrFile),
-                "base": os.path.basename(os.path.splitext(inPathOrFile)[0]),
-                "ext": os.path.splitext(inPathOrFile)[1],
-                "n": n,
-            }
-            outPath = oppof % aDict
-            outPath = os.path.normpath(outPath)
-            outFile = open(outPath, "wb")
+        outFile = ipof.open('wb')
+    elif isinstance(outPathPatternOrFile, str):
+        outFile = pathlib.Path(outPathPatternOrFile).open('wb')
+    else:
+        outFile = outPathPatternOrFile
 
     # get info about source document
     docReader = PdfReader(inFile)
@@ -262,13 +243,9 @@ def generateNup(
         op = (inPathOrFile, i, (0, 0, None, None), i//n, rects[i % n])
         ops.append(op)
 
-    srcr = srcReader = PdfReader(inFile)
-    srcPages = [srcr.pages[i] for i in range(len(srcr.pages))]
+    srcr = PdfReader(inFile)
 
-    if isinstance(oppof, str):
-        outFile = open(outPath, "rb")
-    outr = outReader = PdfReader(buf)
-    outPages = [outr.pages[i] for i in range(len(outr.pages))]
+    outr = PdfReader(buf)
     output = PdfWriter()
 
     mapping = {}
@@ -278,19 +255,17 @@ def generateNup(
             mapping[destPageNum] = []
         mapping[destPageNum].append(op)
 
-    PO, AO, DO, NO = PageObject, ArrayObject, DictionaryObject, NameObject
-
     for destPageNum, ops in mapping.items():
         for op in ops:
             inPathOrFile, srcPageNum, srcRect, destPageNum, destRect = op
-            page2 = srcPages[srcPageNum]
-            page1 = outPages[destPageNum]
+            page2 = srcr.pages[srcPageNum]
+            page1 = outr.pages[destPageNum]
             pageWidth, pageHeight = page2.mediabox.upper_right
             destX, destY, destWidth, destHeight = destRect
             xScale, yScale = calcScalingFactors(
                 destWidth, destHeight, pageWidth, pageHeight)
 
-            newResources = DO()
+            newResources = DictionaryObject()
             rename = {}
             orgResources = page1["/Resources"].get_object()
             page2Resources = page2["/Resources"].get_object()
@@ -298,30 +273,30 @@ def generateNup(
             names = "ExtGState Font XObject ColorSpace Pattern Shading"
             for res in names.split():
                 res = "/" + res
-                new, newrename = PO._merge_resources(
+                new, newrename = PageObject._merge_resources(
                     orgResources,
                     page2Resources,
                     res
                 )
                 if new:
-                    newResources[NO(res)] = new
+                    newResources[NameObject(res)] = new
                     rename.update(newrename)
 
-            newResources[NO("/ProcSet")] = AO(
+            newResources[NameObject("/ProcSet")] = ArrayObject(
                 frozenset(
-                    orgResources.get("/ProcSet", AO()).get_object()
+                    orgResources.get("/ProcSet", ArrayObject()).get_object()
                 ).union(
                     frozenset(
-                        page2Resources.get("/ProcSet", AO()).get_object()
+                        page2Resources.get("/ProcSet", ArrayObject()).get_object()
                     )
                 )
             )
 
-            newContentArray = AO()
+            newContentArray = ArrayObject()
             orgContent = page1["/Contents"].get_object()
-            newContentArray.append(PO._push_pop_gs(orgContent, page1.pdf))
+            newContentArray.append(PageObject._push_pop_gs(orgContent, page1.pdf))
             page2Content = page2['/Contents'].get_object()
-            page2Content = PO._content_stream_rename(
+            page2Content = PageObject._content_stream_rename(
                 page2Content,
                 rename,
                 page1.pdf
@@ -347,17 +322,18 @@ def generateNup(
             page2Content.operations.insert(1, [arr, "cm"])
             page2Content.operations.append([[], "Q"])
             newContentArray.append(page2Content)
-            page1[NO('/Contents')] = ContentStream(newContentArray, page1.pdf)
-            page1[NO('/Resources')] = newResources
+            page1[NameObject('/Contents')] = ContentStream(
+                newContentArray,
+                page1.pdf
+            )
+            page1[NameObject('/Resources')] = newResources
 
         output.add_page(page1)
 
-    if isinstance(oppof, str):
-        outFile = open(outPath, "wb")
     output.write(outFile)
 
     if verbose:
-        if isinstance(oppof, str):
-            print(f"written: {outPath}")
-        elif isFileLike:
-            print("written to file-like input parameter")
+        print("written to file-like input parameter")
+        # if isinstance(oppof, str):
+        #     print(f"written: {outPath.name}")
+        # elif isinstance(oppof, io.IOBase):
