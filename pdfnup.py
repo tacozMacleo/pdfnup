@@ -199,10 +199,7 @@ def generateNup(
     if isinstance(inPathOrFile, str):
         inPathOrFile = pathlib.Path(inPathOrFile)
 
-    if not isinstance(inPathOrFile, io.IOBase):
-        inFile = inPathOrFile.open('rb')
-    else:
-        inFile = inPathOrFile
+    inFile = inPathOrFile
 
     if outPathPatternOrFile is None:
         if isinstance(inPathOrFile, str):
@@ -212,14 +209,19 @@ def generateNup(
             ipof = inPathOrFile.parent / f"{inPathOrFile.stem}-{n}up{inPathOrFile.suffix}"
         else:
             raise AssertionError("Must specify output for file input!")
-        outFile = ipof.open('wb')
+        outFile = ipof
     elif isinstance(outPathPatternOrFile, str):
-        outFile = pathlib.Path(outPathPatternOrFile).open('wb')
-    else:
+        outFile = pathlib.Path(outPathPatternOrFile)
+
+    if isinstance(outPathPatternOrFile, io.IOBase):
         outFile = outPathPatternOrFile
 
     # get info about source document
-    docReader = PdfReader(inFile)
+    if isinstance(inFile, io.IOBase):
+        docReader = PdfReader(inFile)
+    else:
+        with inFile.open('rb') as file:
+            docReader = PdfReader(inFile)
     numPages = len(docReader.pages)
     oldPageSize = docReader.pages[0].mediabox.upper_right
 
@@ -243,7 +245,11 @@ def generateNup(
         op = (inPathOrFile, i, (0, 0, None, None), i//n, rects[i % n])
         ops.append(op)
 
-    srcr = PdfReader(inFile)
+    if isinstance(inFile, io.IOBase):
+        srcr = PdfReader(inFile)
+    else:
+        with inFile.open('rb') as file:
+            srcr = PdfReader(inFile)
 
     outr = PdfReader(buf)
     output = PdfWriter()
@@ -330,7 +336,11 @@ def generateNup(
 
         output.add_page(page1)
 
-    output.write(outFile)
+    if isinstance(outFile, io.IOBase):
+        output.write(outFile)
+    else:
+        with outFile.open('wb') as file:
+            output.write(file)
 
     if verbose:
         print("written to file-like input parameter")
