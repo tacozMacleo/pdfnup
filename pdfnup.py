@@ -16,7 +16,6 @@ For further information please look into the file README.txt!
 
 
 import os
-import sys
 import math
 import zlib
 import base64
@@ -28,13 +27,13 @@ try:
     from pypdf import PdfReader
     from pypdf import PageObject
     from pypdf.generic import NameObject
-    from pypdf.generic import ictionaryObject
-    from pypdf.generic import rrayObject
-    from pypdf.generic import loatObject
-    from pypdf.generic import ontentStream
+    from pypdf.generic import DictionaryObject
+    from pypdf.generic import ArrayObject
+    from pypdf.generic import FloatObject
+    from pypdf.generic import ContentStream
 except ImportError:
     _MSG = "Please install pyPdf first, see http://pybrary.net/pyPdf"
-    raise #RuntimeError(_MSG)
+    raise  # RuntimeError(_MSG)
 
 
 __version__ = "0.4.1"
@@ -64,6 +63,7 @@ fgMis+cW
 """
 _mtA4Pdf = zlib.decompress(base64.standard_b64decode(_mtA4PdfZip64))
 
+
 def isSquare(n):
     "Is this a square number?"
 
@@ -82,10 +82,10 @@ def isHalfSquare(n):
 def calcScalingFactors(w, h, wp, hp):
     wp, hp = map(float, (wp, hp))
 
-    if w == None:
+    if w is None:
         xscale = h/hp
         yscale = h/hp
-    elif h == None:
+    elif h is None:
         xscale = w/wp
         yscale = w/wp
     else:
@@ -192,8 +192,13 @@ def isFileLike(obj):
     return False
 
 
-def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
-        verbose=False):
+def generateNup(
+    inPathOrFile,
+    n,
+    outPathPatternOrFile=None,
+    dirs="RD",
+    verbose=False
+):
     """Generate a N-up document version.
 
     If outPathPatternOrFile is None, the output will be written
@@ -218,7 +223,7 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
         inFile = open(ipof, "rb")
         if isFileLike(oppof):
             outFile = oppof
-        elif oppof is None or type(oppof) in types.StringTypes:
+        elif oppof is None or isinstance(oppof, str):
             if oppof is None:
                 oppof = "%(dirname)s/%(base)s-%(n)dup%(ext)s"
             aDict = {
@@ -226,7 +231,7 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
                 "basename": os.path.basename(inPathOrFile),
                 "base": os.path.basename(os.path.splitext(inPathOrFile)[0]),
                 "ext": os.path.splitext(inPathOrFile)[1],
-                "n":n,
+                "n": n,
             }
             outPath = oppof % aDict
             outPath = os.path.normpath(outPath)
@@ -293,15 +298,22 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
             names = "ExtGState Font XObject ColorSpace Pattern Shading"
             for res in names.split():
                 res = "/" + res
-                new, newrename = PO._merge_resources(orgResources,
-                    page2Resources, res)
+                new, newrename = PO._merge_resources(
+                    orgResources,
+                    page2Resources,
+                    res
+                )
                 if new:
                     newResources[NO(res)] = new
                     rename.update(newrename)
 
             newResources[NO("/ProcSet")] = AO(
-                frozenset(orgResources.get("/ProcSet", AO()).get_object()).union(
-                    frozenset(page2Resources.get("/ProcSet", AO()).get_object())
+                frozenset(
+                    orgResources.get("/ProcSet", AO()).get_object()
+                ).union(
+                    frozenset(
+                        page2Resources.get("/ProcSet", AO()).get_object()
+                    )
                 )
             )
 
@@ -309,8 +321,11 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
             orgContent = page1["/Contents"].get_object()
             newContentArray.append(PO._push_pop_gs(orgContent, page1.pdf))
             page2Content = page2['/Contents'].get_object()
-            page2Content = PO._content_stream_rename(page2Content, rename,
-                page1.pdf)
+            page2Content = PO._content_stream_rename(
+                page2Content,
+                rename,
+                page1.pdf
+            )
             page2Content = ContentStream(page2Content, page1.pdf)
             page2Content.operations.insert(0, [[], "q"])
 
@@ -337,7 +352,7 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
 
         output.add_page(page1)
 
-    if isinstance(oppof,str):
+    if isinstance(oppof, str):
         outFile = open(outPath, "wb")
     output.write(outFile)
 
@@ -346,4 +361,3 @@ def generateNup(inPathOrFile, n, outPathPatternOrFile=None, dirs="RD",
             print(f"written: {outPath}")
         elif isFileLike:
             print("written to file-like input parameter")
-
