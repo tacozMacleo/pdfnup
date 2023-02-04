@@ -230,13 +230,16 @@ def generateNup(
     rects = calcRects(newPageSize, n, dirs)
 
     # combine
-    ops = []
-    newPageNum = -1
+    mapping = {}
+    # newPageNum = -1
     for i in range(numPages):
-        if i % n == 0:
-            newPageNum += 1
-        op = (inPathOrFile, i, (0, 0, None, None), i//n, rects[i % n])
-        ops.append(op)
+        # if i % n == 0:
+        #     newPageNum += 1
+        destPageNum = i//n
+        op = (inPathOrFile, i, (0, 0, None, None), destPageNum, rects[i % n])
+        if destPageNum not in mapping:
+            mapping[destPageNum] = []
+        mapping[destPageNum].append(op)
 
     if isinstance(inFile, io.IOBase):
         srcr = PdfReader(inFile)
@@ -246,13 +249,6 @@ def generateNup(
 
     outr = PdfReader(buf)
     output = PdfWriter()
-
-    mapping = {}
-    for op in ops:
-        dummy, dummy, dummy, destPageNum, dummy = op
-        if destPageNum not in mapping:
-            mapping[destPageNum] = []
-        mapping[destPageNum].append(op)
 
     for destPageNum, ops in mapping.items():
         for op in ops:
