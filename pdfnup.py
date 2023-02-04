@@ -202,14 +202,10 @@ def generateNup(
     outFile = outPathPatternOrFile
 
     if outPathPatternOrFile is None:
-        if isinstance(inPathOrFile, str):
-            ipof_copy = pathlib.Path(inPathOrFile)
-            ipof = ipof_copy.parent / f"{ipof_copy.stem}-{n}up{ipof_copy.suffix}"
-        elif isinstance(inPathOrFile, pathlib.Path):
-            ipof = inPathOrFile.parent / f"{inPathOrFile.stem}-{n}up{inPathOrFile.suffix}"
+        if isinstance(inPathOrFile, pathlib.Path):
+            outFile = inPathOrFile.parent / f"{inPathOrFile.stem}-{n}up{inPathOrFile.suffix}"
         else:
             raise AssertionError("Must specify output for file input!")
-        outFile = ipof
     elif isinstance(outPathPatternOrFile, str):
         outFile = pathlib.Path(outPathPatternOrFile)
 
